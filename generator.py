@@ -7,12 +7,16 @@ from tkinter import filedialog, messagebox
 from datetime import datetime
 from docx import Document
 from docx.oxml.ns import qn
+from PIL import Image, ImageDraw, ImageFont
 import webbrowser
 import zipfile
 import subprocess
 import platform
 import os
 import json
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+GRADIENT_IMG = os.path.join(SCRIPT_DIR, "tke_logo_gradient_reveal.png")
 
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
@@ -150,6 +154,47 @@ def open_folder(path):
 # ── UI ──────────────────────────────────────────────────────────────────
 
 
+def _make_gradient_title(text, font_size=40, bg_hex="#242424"):
+    """Render *text* with the TKE gradient image clipped to the letter shapes."""
+    gradient = Image.open(GRADIENT_IMG).convert("RGBA")
+
+    # Try to find a bold system font; fall back to default
+    try:
+        font = ImageFont.truetype("Arial Bold.ttf", font_size)
+    except OSError:
+        for name in ("ArialB.ttf", "Helvetica-Bold.ttf", "DejaVuSans-Bold.ttf",
+                      "/System/Library/Fonts/Helvetica.ttc"):
+            try:
+                font = ImageFont.truetype(name, font_size)
+                break
+            except OSError:
+                continue
+        else:
+            font = ImageFont.load_default()
+
+    # Measure text
+    tmp = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    bbox = tmp.textbbox((0, 0), text, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    pad_x, pad_y = 20, 12
+    w, h = tw + pad_x * 2, th + pad_y * 2
+
+    # Scale gradient to cover the text area
+    grad = gradient.resize((w, h), Image.LANCZOS)
+
+    # Draw text mask (white text on black)
+    mask_img = Image.new("L", (w, h), 0)
+    draw = ImageDraw.Draw(mask_img)
+    draw.text((pad_x - bbox[0], pad_y - bbox[1]), text, fill=255, font=font)
+
+    # Composite: gradient where mask is white, bg_hex elsewhere
+    bg_r, bg_g, bg_b = int(bg_hex[1:3], 16), int(bg_hex[3:5], 16), int(bg_hex[5:7], 16)
+    result = Image.new("RGBA", (w, h), (bg_r, bg_g, bg_b, 255))
+    result.paste(grad, mask=mask_img)
+
+    return result
+
+
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -179,11 +224,13 @@ class App(ctk.CTk):
         root = ctk.CTkFrame(self, fg_color="transparent")
         root.pack(fill="both", expand=True, padx=24, pady=20)
 
-        # Title
-        ctk.CTkLabel(
-            root, text="TKE SWMS Generator",
-            font=ctk.CTkFont(size=26, weight="bold"),
-        ).pack(pady=(0, 16))
+        # Title — gradient-clipped text
+        title_pil = _make_gradient_title("TKE SWMS Generator", font_size=40)
+        self._title_img = ctk.CTkImage(
+            light_image=title_pil, dark_image=title_pil,
+            size=(title_pil.width, title_pil.height),
+        )
+        ctk.CTkLabel(root, image=self._title_img, text="").pack(pady=(0, 16))
 
         # ── Job type ─────────────────────────────────────────────
         card = ctk.CTkFrame(root)
