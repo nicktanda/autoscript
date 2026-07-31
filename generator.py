@@ -224,13 +224,22 @@ class App(ctk.CTk):
         root = ctk.CTkFrame(self, fg_color="transparent")
         root.pack(fill="both", expand=True, padx=24, pady=20)
 
-        # Title — gradient-clipped text
-        title_pil = _make_gradient_title("TKE SWMS Generator", font_size=40)
-        self._title_img = ctk.CTkImage(
-            light_image=title_pil, dark_image=title_pil,
-            size=(title_pil.width, title_pil.height),
+        # Title — logo image + text
+        title_row = ctk.CTkFrame(root, fg_color="transparent")
+        title_row.pack(pady=(0, 16))
+
+        logo_pil = Image.open(GRADIENT_IMG).convert("RGBA")
+        logo_h = 40
+        logo_w = int(logo_pil.width * (logo_h / logo_pil.height))
+        self._logo_img = ctk.CTkImage(
+            light_image=logo_pil, dark_image=logo_pil,
+            size=(logo_w, logo_h),
         )
-        ctk.CTkLabel(root, image=self._title_img, text="").pack(pady=(0, 16))
+        ctk.CTkLabel(title_row, image=self._logo_img, text="").pack(side="left", padx=(0, 8))
+        ctk.CTkLabel(
+            title_row, text="SWMS Generator",
+            font=ctk.CTkFont(size=40, weight="bold"),
+        ).pack(side="left")
 
         # ── Job type ─────────────────────────────────────────────
         card = ctk.CTkFrame(root)
