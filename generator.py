@@ -200,8 +200,16 @@ class App(ctk.CTk):
         super().__init__()
 
         self.title("TKE SWMS Generator v2.0")
-        self.geometry("920x800")
         self.minsize(720, 620)
+
+        # Start maximized / full-screen size
+        try:
+            self.state("zoomed")          # Windows / some Linux
+        except tk.TclError:
+            # macOS – set geometry to screen dimensions
+            sw = self.winfo_screenwidth()
+            sh = self.winfo_screenheight()
+            self.geometry(f"{sw}x{sh}+0+0")
 
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
@@ -221,8 +229,10 @@ class App(ctk.CTk):
     # ── Layout ─────────────────────────────────────────────────────
 
     def _build(self):
-        root = ctk.CTkFrame(self, fg_color="transparent")
-        root.pack(fill="both", expand=True, padx=24, pady=20)
+        # Scrollable wrapper so all content is reachable on small screens
+        scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=24, pady=20)
+        root = scroll
 
         # Title — logo image + text
         title_row = ctk.CTkFrame(root, fg_color="transparent")
