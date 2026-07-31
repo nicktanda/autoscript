@@ -117,6 +117,14 @@ def _replace_in_paragraph_element(para_elem, old_text, new_text):
         full = "".join(texts)
 
 
+def _strip_highlights(root_element):
+    """Remove yellow highlight formatting from all runs in root_element."""
+    for rpr in root_element.iter(qn("w:rPr")):
+        hl = rpr.find(qn("w:highlight"))
+        if hl is not None:
+            rpr.remove(hl)
+
+
 def _replace_in_tree(root_element, old_text, new_text):
     """Walk every <w:p> inside root_element and replace placeholders."""
     for para in root_element.iter(qn("w:p")):
@@ -137,6 +145,12 @@ def process_document(input_path, output_path, site, date_text):
         for rel in doc.part.rels.values():
             if "header" in rel.reltype or "footer" in rel.reltype:
                 _replace_in_tree(rel.target_part.element, old, new)
+
+    # Remove yellow placeholder highlights so replaced text appears clean
+    _strip_highlights(doc.element)
+    for rel in doc.part.rels.values():
+        if "header" in rel.reltype or "footer" in rel.reltype:
+            _strip_highlights(rel.target_part.element)
 
     doc.save(output_path)
 
